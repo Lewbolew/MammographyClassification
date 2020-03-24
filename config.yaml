@@ -1,0 +1,18 @@
+data:
+  data_dir: /Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy
+  groups:
+    0: ['0', '1']
+    1: ['2', '3']
+    2: ['4a', '4b', '4c', '5', '6']
+  data_set: INbreastDataset
+
+model:
+  name: ResNet50
+
+optimizer:
+  name: Adam
+  parameters:
+    lr: 0.001
+
+loss:
+  name: CrossEntropyLoss
