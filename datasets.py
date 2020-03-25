@@ -11,6 +11,8 @@ from torchvision import transforms
 class INbreastDataset(Dataset):
     LABELS_FILENAME = "INbreast_pre.csv"
     IMG_PATH_COLUMN = 'IMG_PATH'
+    IMAGE_FOLDER = "data"
+    LABELS_NAME = "Bi-Rads"
 
     def __init__(self, root, partition='train', transform=None, augmentation=None, config=dict()):
         self.root_dir = root
@@ -31,14 +33,14 @@ class INbreastDataset(Dataset):
             for value in values:
                 mapper[value] = group
 
-        self.labels = self.df['Bi-Rads'].apply(lambda x: mapper[x])
+        self.labels = self.df[self.LABELS_NAME].apply(lambda x: mapper[x])
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
         info = self.df.iloc[idx]
-        path = os.path.join(self.root_dir, self.partition, 'data', info[self.IMG_PATH_COLUMN])
+        path = os.path.join(self.root_dir, self.partition, self.IMAGE_FOLDER, info[self.IMG_PATH_COLUMN])
 
         y = self.labels[idx]
         X = cv2.imread(path)
@@ -62,9 +64,8 @@ if __name__ == "__main__":
         transforms.ToPILImage(),
         transforms.Resize((256, 256)),
         transforms.ToTensor()
-        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
-    dataset = INbreastDataset(root_dir, config=config['data'], transform=transform)
+    dataset = INbreastDataset(root_dir, config=config['data'], transforms=transform)
 
     train_loader = DataLoader(dataset, batch_size=16)
     print(len(train_loader))

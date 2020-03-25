@@ -44,8 +44,7 @@ class InBreastSystem(pl.LightningModule):
         scheduler = lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
         return [optimizer], [scheduler]
 
-    @pl.data_loader
-    def tng_dataloader(self):
+    def train_dataloader(self):
         return self.train_loader
 
     # @pl.data_loader
