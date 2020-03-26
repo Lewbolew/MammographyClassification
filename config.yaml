@@ -1,5 +1,5 @@
 data:
-  data_dir: /Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy
+  data_dir: /datasets/mammography/INbreastWPNG
   groups:
     0: ['0', '1']
     1: ['2', '3']
