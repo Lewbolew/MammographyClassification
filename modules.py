@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from pytorch_lightning.callbacks import ModelCheckpoint
 from datasets import INbreastDataset
+# from sklearn.metrics import f1_score
+from losses import f1_loss
 
 
 class INBreastClassification(pl.LightningModule):
@@ -27,15 +29,12 @@ class INBreastClassification(pl.LightningModule):
         y_pred = self.forward(x)
         loss = self.criteria(y_pred, y)
         loss = loss.unsqueeze(dim=-1)
-        return {'loss': loss, 'log': {'loss': loss}}
+        scores = f1_loss.forward(y_pred, y)
+        self.logger.experiment.add_scalar('Loss/train', loss, self.global_step)
+        return {'loss': loss, 'F1': scores['F1'], 'precision': scores['precision'], "recall": scores['recall']}
 
-    # def validation_step(self, batch, batch_idx):
-    #     x, y = batch
-    #     y_pred = self.forward(x)
-    #     val_loss = self.criteria(y_pred, y)
-    #     val_loss = val_loss.unsqueeze(dim=-1)
-    #     self.logger.summary.scalar('loss', val_loss)
-    #     return {'val_loss': val_loss}
+    def training_epoch_end(self, outputs):
+        print(outputs)
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=0.001)
@@ -52,6 +51,7 @@ class INBreastClassification(pl.LightningModule):
         dataset = eval(self.config["data"]["data_set"])
         train_dataset = dataset(root_dir, partition="train", config=self.config["data"], transform=transform)
         return DataLoader(train_dataset, batch_size=16, shuffle=True)
+
     # TODO: Implement validation dataloader
 
     def __load_model(self):
