@@ -5,7 +5,7 @@ import torch
 from torch.nn import functional as F
 from torch.optim import Adam, lr_scheduler
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from pytorch_lightning.callbacks import ModelCheckpoint
 from datasets import INbreastDataset
@@ -35,6 +35,17 @@ class INBreastClassification(pl.LightningModule):
         self.logger.experiment.add_scalar('Loss/train', loss, self.global_step)
         return {'loss': loss}
 
+    def validation_step(self, batch, batch_idx):
+        return self._shared_eval(batch, batch_idx, 'val')
+
+    def _shared_eval(self, batch, batch_idx, prefix):
+        x, y = batch
+        y_pred = self.forward(x)
+        val_loss = self.criteria(y_pred, y)
+        val_loss = val_loss.unsqueeze(dim=-1)
+        self.logger.experiment.add_scalar(f'Loss/{prefix}', val_loss, self.global_step)
+        return {f'{prefix}_loss': val_loss}
+
     def on_epoch_end(self):
         outputs = torch.cat(self.train_epoch_outputs, dim=0)
         true_labels = torch.cat(self.train_epoch_true_labels, dim=0)
@@ -56,17 +67,26 @@ class INBreastClassification(pl.LightningModule):
         scheduler = lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
         return [optimizer], [scheduler]
 
-    def train_dataloader(self):
+    def prepare_data(self):
         transform = transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((256, 256)),
             transforms.ToTensor()
         ])
         root_dir = self.config["data"]["data_dir"]
+        val_coefficient = float(self.config["data"]["val_coefficient"])
         dataset = eval(self.config["data"]["data_set"])
         train_dataset = dataset(root_dir, partition="train", config=self.config["data"], transform=transform)
+        train_dataset, val_dataset = random_split(train_dataset, [int(len(train_dataset) * (1.0 - val_coefficient)),
+                                                                  int(len(train_dataset) * val_coefficient)])
+        self.train_dataset = train_dataset
+        self.val_dataset = val_dataset
 
-        return DataLoader(train_dataset, batch_size=16, shuffle=True)
+    def train_dataloader(self):
+        return DataLoader(self.train_dataset, batch_size=16, shuffle=True)
+
+    def val_dataloader(self):
+        return DataLoader(self.val_dataset, batch_size=16, shuffle=True)
 
     # TODO: Implement validation dataloader
 

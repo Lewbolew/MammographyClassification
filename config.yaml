@@ -1,10 +1,11 @@
 data:
-  data_dir: /Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy #/datasets/mammography/INbreastWPNG
+  data_dir: /datasets/mammography/INbreastWPNG #/Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy
   groups:
     0: ['0', '1']
     1: ['2', '3']
     2: ['4a', '4b', '4c', '5', '6']
   data_set: INbreastDataset
+  val_coefficient: 0.2
 
 model:
   name: ResNet50
