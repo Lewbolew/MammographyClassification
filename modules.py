@@ -9,8 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from pytorch_lightning.callbacks import ModelCheckpoint
 from datasets import INbreastDataset
-# from sklearn.metrics import f1_score
-from losses import f1_loss
+from losses import f1_precis_recall
 
 
 class INBreastClassification(pl.LightningModule):
@@ -19,6 +18,8 @@ class INBreastClassification(pl.LightningModule):
         self.config = config
         self.n_class = len(config['data']['groups'])
         self.criteria = nn.CrossEntropyLoss()
+        self.train_epoch_outputs = list()
+        self.train_epoch_true_labels = list()
         self.__load_model()
 
     def forward(self, x):
@@ -27,14 +28,28 @@ class INBreastClassification(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_pred = self.forward(x)
+        self.train_epoch_outputs.append(y_pred)
+        self.train_epoch_true_labels.append(y)
         loss = self.criteria(y_pred, y)
         loss = loss.unsqueeze(dim=-1)
-        scores = f1_loss.forward(y_pred, y)
         self.logger.experiment.add_scalar('Loss/train', loss, self.global_step)
-        return {'loss': loss, 'F1': scores['F1'], 'precision': scores['precision'], "recall": scores['recall']}
+        return {'loss': loss}
 
-    def training_epoch_end(self, outputs):
-        print(outputs)
+    def on_epoch_end(self):
+        outputs = torch.cat(self.train_epoch_outputs, dim=0)
+        true_labels = torch.cat(self.train_epoch_true_labels, dim=0)
+        _, predicted = torch.max(outputs.data, 1)
+        total = len(true_labels)
+        correct = (predicted == true_labels).sum()
+        accuracy = 100 * correct / total
+        scores = f1_precis_recall(outputs, true_labels)
+        self.train_epoch_outputs.clear()
+        self.train_epoch_true_labels.clear()
+
+        self.logger.experiment.add_scalar("F1/train", scores['F1'], self.current_epoch)
+        self.logger.experiment.add_scalar("Accuracy/train", accuracy, self.current_epoch)
+        self.logger.experiment.add_scalar("Precision/train", scores['precision'], self.current_epoch)
+        self.logger.experiment.add_scalar("Recall/train", scores['recall'], self.current_epoch)
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=0.001)
@@ -50,6 +65,7 @@ class INBreastClassification(pl.LightningModule):
         root_dir = self.config["data"]["data_dir"]
         dataset = eval(self.config["data"]["data_set"])
         train_dataset = dataset(root_dir, partition="train", config=self.config["data"], transform=transform)
+
         return DataLoader(train_dataset, batch_size=16, shuffle=True)
 
     # TODO: Implement validation dataloader

@@ -3,7 +3,7 @@ from torch.nn import functional as F
 import torch
 
 
-class F1Loss(nn.Module):
+class F1LossPrecisRec(nn.Module):
     def __init__(self, epsilon=1e-7):
         super().__init__()
         self.epsilon = epsilon
@@ -27,4 +27,4 @@ class F1Loss(nn.Module):
         return {"F1": 1 - f1.mean(), "precision": precision.mean(), "recall": recall.mean()}
 
 
-f1_loss = F1Loss().cuda()
+f1_precis_recall = F1LossPrecisRec().cuda()
