@@ -4,6 +4,7 @@ from modules import INBreastClassification
 from callbacks import checkpoint_callback
 import yaml
 
+
 if __name__ == '__main__':
     with open('config.yaml', 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)

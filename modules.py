@@ -18,49 +18,57 @@ class INBreastClassification(pl.LightningModule):
         self.config = config
         self.n_class = len(config['data']['groups'])
         self.criteria = nn.CrossEntropyLoss()
-        self.train_epoch_outputs = list()
-        self.train_epoch_true_labels = list()
+        self.epoch_outputs = list()
+        self.epoch_true_labels = list()
+        self.val_epoch_outputs = list()
+        self.val_epoch_true_labels = list()
         self.__load_model()
 
     def forward(self, x):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_pred = self.forward(x)
-        self.train_epoch_outputs.append(y_pred)
-        self.train_epoch_true_labels.append(y)
-        loss = self.criteria(y_pred, y)
-        loss = loss.unsqueeze(dim=-1)
-        self.logger.experiment.add_scalar('Loss/train', loss, self.global_step)
-        return {'loss': loss}
+        return self._shared_eval(batch, batch_idx, 'train', self.epoch_true_labels, self.epoch_outputs)
 
     def validation_step(self, batch, batch_idx):
-        return self._shared_eval(batch, batch_idx, 'val')
+        return self._shared_eval(batch, batch_idx, 'val', self.val_epoch_true_labels, self.val_epoch_outputs)
 
-    def _shared_eval(self, batch, batch_idx, prefix):
+    def _shared_eval(self, batch, batch_idx, prefix, true_labels: list, pred: list):
+        result_string = 'loss' if prefix == 'train' else f'{prefix}_loss'
         x, y = batch
         y_pred = self.forward(x)
-        val_loss = self.criteria(y_pred, y)
-        val_loss = val_loss.unsqueeze(dim=-1)
-        self.logger.experiment.add_scalar(f'Loss/{prefix}', val_loss, self.global_step)
-        return {f'{prefix}_loss': val_loss}
+        pred.append(y_pred)
+        true_labels.append(y)
+        loss = self.criteria(y_pred, y)
+        loss = loss.unsqueeze(dim=-1)
+        self.logger.experiment.add_scalar(f'Loss/{prefix}', loss, self.global_step)
+        return {result_string: loss}
 
     def on_epoch_end(self):
-        outputs = torch.cat(self.train_epoch_outputs, dim=0)
-        true_labels = torch.cat(self.train_epoch_true_labels, dim=0)
+        return self.calculate_metrics('train', self.epoch_true_labels, self.epoch_outputs)
+
+    def validation_epoch_end(self, outputs: list):
+        return self.calculate_metrics('val', self.val_epoch_true_labels, self.val_epoch_outputs)
+
+    def calculate_metrics(self, prefix: str, targets: list, pred: list,):
+        outputs = torch.cat(pred, dim=0)
+        true_labels = torch.cat(targets, dim=0)
         _, predicted = torch.max(outputs.data, 1)
         total = len(true_labels)
         correct = (predicted == true_labels).sum()
         accuracy = 100 * correct / total
         scores = f1_precis_recall(outputs, true_labels)
-        self.train_epoch_outputs.clear()
-        self.train_epoch_true_labels.clear()
 
-        self.logger.experiment.add_scalar("F1/train", scores['F1'], self.current_epoch)
-        self.logger.experiment.add_scalar("Accuracy/train", accuracy, self.current_epoch)
-        self.logger.experiment.add_scalar("Precision/train", scores['precision'], self.current_epoch)
-        self.logger.experiment.add_scalar("Recall/train", scores['recall'], self.current_epoch)
+        pred.clear()
+        targets.clear()
+
+        self.logger.experiment.add_scalar(f"F1/{prefix}", scores['F1'], self.current_epoch)
+        self.logger.experiment.add_scalar(f"Accuracy/{prefix}", accuracy, self.current_epoch)
+        self.logger.experiment.add_scalar(f"Precision/{prefix}", scores['precision'], self.current_epoch)
+        self.logger.experiment.add_scalar(f"Recall/{prefix}", scores['recall'], self.current_epoch)
+        results_dict = {f"F1/{prefix}": scores['F1'], f"Accuracy/{prefix}": accuracy,
+                        f"Precision/{prefix}": scores['precision'], f"Recall/{prefix}": scores['recall']}
+        return results_dict
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=0.001)
@@ -87,8 +95,6 @@ class INBreastClassification(pl.LightningModule):
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=16, shuffle=True)
-
-    # TODO: Implement validation dataloader
 
     def __load_model(self):
         mapping = self.__module_mapping('models')
