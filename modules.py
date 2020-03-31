@@ -41,7 +41,8 @@ class INBreastClassification(pl.LightningModule):
         true_labels.append(y)
         loss = self.criteria(y_pred, y)
         loss = loss.unsqueeze(dim=-1)
-        self.logger.experiment.add_scalar(f'Loss/{prefix}', loss, self.global_step)
+        if prefix != 'val':
+            self.logger.experiment.add_scalar(f'Loss/{prefix}', loss, self.global_step)
         return {result_string: loss}
 
     def on_epoch_end(self):
@@ -62,6 +63,8 @@ class INBreastClassification(pl.LightningModule):
         pred.clear()
         targets.clear()
 
+        if prefix == 'val':
+            self.logger.experiment.add_scalar("Loss/val", self.criteria(outputs, true_labels), self.current_epoch)
         self.logger.experiment.add_scalar(f"F1/{prefix}", scores['F1'], self.current_epoch)
         self.logger.experiment.add_scalar(f"Accuracy/{prefix}", accuracy, self.current_epoch)
         self.logger.experiment.add_scalar(f"Precision/{prefix}", scores['precision'], self.current_epoch)
