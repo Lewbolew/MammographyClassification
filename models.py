@@ -19,75 +19,47 @@ class ResNet50:
         return self.model
 
 
+class VGGBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(VGGBlock, self).__init__()
+        self.model_block = nn.Sequential(
+            nn.BatchNorm2d(in_channels, momentum=0.9, affine=True),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(out_channels, momentum=0.9, affine=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2)
+        )
+
+    def forward(self, x):
+        return self.model_block(x)
+
+
 class DetectorNET(nn.Module):
     # DM Challenge Yaroslav Nikulin (Therapixel)
     def __init__(self, num_classes):
         super(DetectorNET, self).__init__()
         self.n_classes = num_classes
-        self.conv_net = nn.Sequential(
-            nn.BatchNorm2d(3, momentum=0.9, affine=True),
-            nn.Conv2d(3, 32, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(32, momentum=0.9, affine=True),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
-
-            nn.BatchNorm2d(32, momentum=0.9, affine=True),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(64, momentum=0.9, affine=True),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
-
-            nn.BatchNorm2d(64, momentum=0.9, affine=True),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(128, momentum=0.9, affine=True),
-            nn.Conv2d(128, 128, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
-
-            nn.BatchNorm2d(128, momentum=0.9, affine=True),
-            nn.Conv2d(128, 256, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(256, momentum=0.9, affine=True),
-            nn.Conv2d(256, 256, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
-
-            nn.BatchNorm2d(256, momentum=0.9, affine=True),
-            nn.Conv2d(256, 512, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512, momentum=0.9, affine=True),
-            nn.Conv2d(512, 512, kernel_size=3, stride=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2)
-        )
+        self.conv_net = nn.Sequential(*[VGGBlock(i[0], i[1]) for i in [(3, 32), (32, 64), (64, 128), (128, 256), (256, 512)]])
 
         self.fc = nn.Sequential(
             nn.BatchNorm2d(512, momentum=0.9, affine=True),
             nn.Conv2d(512, 1024, kernel_size=3, stride=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(1024, momentum=0.9, affine=True),
+            # nn.BatchNorm2d(1024, momentum=0.9, affine=True),
             nn.Conv2d(1024, 512, kernel_size=1, stride=1),
             nn.ReLU(inplace=True),
-            nn.BatchNorm2d(512, momentum=0.9, affine=True),
+            # nn.BatchNorm2d(512, momentum=0.9, affine=True),
             nn.Conv2d(512, self.n_classes, kernel_size=1, stride=1)
         )
 
     def forward(self, x):
-        print(x.shape)
-        x = self.conv_net(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
-        print(x.shape)
-        return x
+        return self.fc(self.conv_net(x))
 
 
 if __name__ == "__main__":
-    img = torch.rand((1, 3, 224, 244))
+    img = torch.rand((1, 3, 224, 224))
     # img = torch.from_numpy(cv2.imread('/Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy/train/data/53587014_809e3f43339f93c6_MG_L_CC_ANON.png'))
-    net = DetectorNET(10)
-    net.forward(img.float())
+    net = DetectorNET(5)
+    print(net.forward(img.float()))
