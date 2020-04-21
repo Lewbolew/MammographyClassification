@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from pytorch_lightning.callbacks import ModelCheckpoint
-from datasets import INbreastDataset
+from datasets import INbreastDataset, INBreastPatchesDataset
 from losses import f1_precis_recall
 
 
@@ -81,15 +81,14 @@ class INBreastClassification(pl.LightningModule):
     def prepare_data(self):
         transform = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((256, 256)),
             transforms.ToTensor()
         ])
         root_dir = self.config["data"]["data_dir"]
         val_coefficient = float(self.config["data"]["val_coefficient"])
         dataset = eval(self.config["data"]["data_set"])
-        train_dataset = dataset(root_dir, partition="train", config=self.config["data"], transform=transform)
-        train_dataset, val_dataset = random_split(train_dataset, [int(len(train_dataset) * (1.0 - val_coefficient)),
-                                                                  int(len(train_dataset) * val_coefficient)])
+        train_dataset = dataset(root_dir, config=self.config["data"], transform=transform)
+        train_dataset, val_dataset = random_split(train_dataset, [round(len(train_dataset) * (1.0 - val_coefficient)),
+                                                                  round(len(train_dataset) * val_coefficient)])
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
 
@@ -104,7 +103,7 @@ class INBreastClassification(pl.LightningModule):
         if 'parameters' not in self.config['model']:
             self.config['model']['parameters'] = {}
         self.config['model']['parameters']['n_classes'] = self.n_class
-        self.model = mapping[self.config['model']['name']](**self.config['model']['parameters']).get_model()
+        self.model = mapping[self.config['model']['name']](**self.config['model']['parameters'])
 
     @staticmethod
     def __module_mapping(module_name):

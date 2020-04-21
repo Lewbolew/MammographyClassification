@@ -18,10 +18,10 @@ class INbreastDataset(Dataset):
         self.root_dir = root
         self.partition = partition
         self.config = config
-        self.__load_data()
-        self.__find_labels()
         self.transform = transform
         self.augmentation = augmentation
+        self.__load_data()
+        self.__find_labels()
 
     def __load_data(self):
         self.df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
@@ -44,6 +44,41 @@ class INbreastDataset(Dataset):
 
         y = self.labels[idx]
         X = cv2.imread(path)
+
+        if self.augmentation:
+            X = self.augmentation(X)
+
+        if self.transform:
+            X = self.transform(X)
+
+        return X, y
+
+
+class INBreastPatchesDataset(Dataset):
+    LABELS_FILENAME = "INBPatches.csv"
+    IMG_PATH_COLUMN = 'IMG_PATH'
+    IMAGE_FOLDER = "patches_data"
+    LABELS_NAME = "Label"
+
+    def __init__(self, root, transform = None, augmentation=None, config=dict()):
+        self.root_dir = root
+        self.config = config
+        self.transform = transform
+        self.augmentation = augmentation
+        self.__load_data()
+
+    def __load_data(self):
+        self.df = pd.read_csv(os.path.join(self.root_dir, self.IMAGE_FOLDER, self.LABELS_FILENAME))
+        self.labels = self.df[self.LABELS_NAME]
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, item):
+        row = self.df.iloc[item]
+        img_path = os.path.join(self.root_dir, self.IMAGE_FOLDER, row[self.IMG_PATH_COLUMN])
+        y = self.labels[item]
+        X = cv2.imread(img_path)
 
         if self.augmentation:
             X = self.augmentation(X)
