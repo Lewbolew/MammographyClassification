@@ -10,6 +10,8 @@ from torchvision import transforms
 from pytorch_lightning.callbacks import ModelCheckpoint
 from datasets import INbreastDataset, INBreastPatchesDataset
 from losses import f1_precis_recall
+from samplers import ImbalancedDatasetSampler
+import numpy as np
 
 
 class INBreastClassification(pl.LightningModule):
@@ -89,11 +91,11 @@ class INBreastClassification(pl.LightningModule):
         train_dataset = dataset(root_dir, config=self.config["data"], transform=transform)
         train_dataset, val_dataset = random_split(train_dataset, [round(len(train_dataset) * (1.0 - val_coefficient)),
                                                                   round(len(train_dataset) * val_coefficient)])
-        self.train_dataset = train_dataset
-        self.val_dataset = val_dataset
+        self.train_dataset = train_dataset.dataset
+        self.val_dataset = val_dataset.dataset
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=16, shuffle=True)
+        return DataLoader(self.train_dataset, batch_size=16, shuffle=False, sampler=ImbalancedDatasetSampler(self.train_dataset))
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=16, shuffle=True)
