@@ -9,14 +9,15 @@ import torchvision.transforms as transforms
 import cv2
 
 
-class ResNet50:
+class ResNet50(nn.Module):
     def __init__(self, n_classes, pretrained=False):
+        super(ResNet50, self).__init__()
         self.model = models.resnet50(pretrained=pretrained)
         features_num = self.model.fc.in_features
         self.model.fc = nn.Linear(features_num, n_classes)
 
-    def get_model(self):
-        return self.model
+    def forward(self, x):
+        return self.model(x)
 
 
 class VGGBlock(nn.Module):
@@ -63,6 +64,5 @@ class DetectorNET(nn.Module):
 
 if __name__ == "__main__":
     img = torch.rand((1, 3, 548, 548))
-    # img = torch.from_numpy(cv2.imread('/Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy/train/data/53587014_809e3f43339f93c6_MG_L_CC_ANON.png'))
     net = DetectorNET(5)
     print(net.forward(img.float()))

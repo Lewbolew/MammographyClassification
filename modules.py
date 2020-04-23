@@ -19,7 +19,7 @@ class INBreastClassification(pl.LightningModule):
         super(INBreastClassification, self).__init__()
         self.config = config
         self.n_class = len(config['data']['groups'])
-        self.criteria = nn.CrossEntropyLoss()
+        self.criteria = nn.CrossEntropyLoss()  # weight=torch.Tensor([0.0004, 0.001, 0.005])
         self.epoch_outputs = list()
         self.epoch_true_labels = list()
         self.val_epoch_outputs = list()
@@ -83,6 +83,10 @@ class INBreastClassification(pl.LightningModule):
     def prepare_data(self):
         transform = transforms.Compose([
             transforms.ToPILImage(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            # transforms.RandomRotation(20),
+            transforms.RandomAffine(20, scale=(0.8, 1.2), shear=(-0.2, 0.2)),
             transforms.ToTensor()
         ])
         root_dir = self.config["data"]["data_dir"]
@@ -95,10 +99,10 @@ class INBreastClassification(pl.LightningModule):
         self.val_dataset = val_dataset.dataset
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=16, shuffle=False, sampler=ImbalancedDatasetSampler(self.train_dataset))
+        return DataLoader(self.train_dataset, batch_size=64, shuffle=False, sampler=ImbalancedDatasetSampler(self.train_dataset))
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=16, shuffle=True)
+        return DataLoader(self.val_dataset, batch_size=64, shuffle=True)
 
     def __load_model(self):
         mapping = self.__module_mapping('models')
