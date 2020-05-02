@@ -3,3 +3,9 @@
 venv
 lightning_logs
 __pycache__/*
+.DS_store
+.ipynb_checkpoints
+checkpoints/
+patches_data/
+CBIS-DDSM
+INBreast
