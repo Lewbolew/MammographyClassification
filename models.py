@@ -20,6 +20,17 @@ class ResNet50(nn.Module):
         return self.model(x)
 
 
+class ResNet34(nn.Module):
+    def __init__(self, n_classes, pretrained=True):
+        super(ResNet34, self).__init__()
+        self.model = models.resnet34(pretrained=pretrained)
+        features_num = self.model.fc.in_features
+        self.model.fc = nn.Linear(features_num, n_classes)
+
+    def forward(self, x):
+        return self.model(x)
+
+
 class VGGBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(VGGBlock, self).__init__()
@@ -30,7 +41,7 @@ class VGGBlock(nn.Module):
             nn.BatchNorm2d(out_channels, momentum=0.9, affine=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2)
+            nn.MaxPool2d(kernel_size=2, stride=2)
         )
 
     def forward(self, x):
@@ -48,11 +59,11 @@ class DetectorNET(nn.Module):
             nn.BatchNorm2d(512, momentum=0.9, affine=True),
             nn.Conv2d(512, 1024, kernel_size=3, stride=1),
             nn.ReLU(inplace=True),
-            # nn.BatchNorm2d(1024, momentum=0.9, affine=True),
+            nn.BatchNorm2d(1024, momentum=0.9, affine=True),
             nn.Conv2d(1024, 512, kernel_size=1, stride=1),
             nn.ReLU(inplace=True),
             nn.Dropout(0.25),
-            # nn.BatchNorm2d(512, momentum=0.9, affine=True),
+            nn.BatchNorm2d(512, momentum=0.9, affine=True),
             nn.Conv2d(512, self.n_classes, kernel_size=1, stride=1)
         )
 
@@ -63,6 +74,6 @@ class DetectorNET(nn.Module):
 
 
 if __name__ == "__main__":
-    img = torch.rand((1, 3, 548, 548))
-    net = DetectorNET(5)
+    img = torch.rand((1, 3, 224, 224))
+    net = DetectorNET(3)
     print(net.forward(img.float()))

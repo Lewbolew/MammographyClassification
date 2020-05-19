@@ -55,9 +55,10 @@ class INbreastDataset(Dataset):
 
 
 class INBreastPatchesDataset(Dataset):
-    LABELS_FILENAME = "INBPatches.csv"
+    # LABELS_FILENAME = "INbreastBinaryMass.csv"
+    LABELS_FILENAME = "DDSM_Patches_v1.csv"
     IMG_PATH_COLUMN = 'IMG_PATH'
-    IMAGE_FOLDER = "patches_data"
+    IMAGE_FOLDER = "patches_data_5_v1"
     LABELS_NAME = "Label"
 
     def __init__(self, root, transform = None, augmentation=None, config=dict()):

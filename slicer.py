@@ -56,7 +56,7 @@ class Slicer:
             for pair in tqdm(mask_img_pairs):
                 counter = 0
                 mask_img = cv2.imread(os.path.join(mask_folder, pair['mask']))
-                for (x, y, window) in self.sliding_window(mask_img, stepSize=224, windowSize=(winW, winH)):
+                for (x, y, window) in self.sliding_window(mask_img, stepSize=50, windowSize=(winW, winH)):
                     if window.shape[0] != winH or window.shape[1] != winW:
                         continue
                     white_p, black_p = self.count_black_and_white(window)
@@ -78,7 +78,7 @@ class Slicer:
             th2 = cv2.adaptiveThreshold(original_image, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                         cv2.THRESH_BINARY, 11, 2)
             counter = 0
-            for (x, y, window) in self.sliding_window(th2, stepSize=224, windowSize=(winW, winH)):
+            for (x, y, window) in self.sliding_window(th2, stepSize=112, windowSize=(winW, winH)):
                 if window.shape[0] != winH or window.shape[1] != winW:
                     continue
                 white_p, black_p = self.count_black_and_white(window)
@@ -105,10 +105,14 @@ class Slicer:
                 image = os.path.join(class_dir, image)
                 image_df['IMG_PATH'].append(image)
                 image_df["Label"].append(label)
-        pd.DataFrame(image_df, columns=["IMG_PATH", "Label"]).to_csv("patches_data/INBPatches.csv")
+        pd.DataFrame(image_df, columns=["IMG_PATH", "Label"]).to_csv("INBPatches.csv")
+
 
 
 if __name__ == "__main__":
+    # print(len(os.listdir("patches_data/CalcificationSegmentationMasks")))
+    # print(len(os.listdir("patches_data/MassSegmentationMasks")))
+    # print(len(os.listdir("patches_data/normal")))
     slicer = Slicer("FullINbreast.csv",
                     [(1, "AllPNG/extras/MassSegmentationMasks", "Mask path"),
                      (2, "AllPNG/extras/CalcificationSegmentationMasks", "Calc path")],

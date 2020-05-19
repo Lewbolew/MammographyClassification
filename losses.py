@@ -5,13 +5,13 @@ import torch
 
 class F1LossPrecisRec(nn.Module):
     def __init__(self, epsilon=1e-7):
-        super().__init__()
+        super(F1LossPrecisRec, self).__init__()
         self.epsilon = epsilon
 
-    def forward(self, y_pred, y_true, ):
+    def forward(self, y_pred, y_true, n_classes):
         assert y_pred.ndim == 2
         assert y_true.ndim == 1
-        y_true = F.one_hot(y_true, 3).to(torch.float32)
+        y_true = F.one_hot(y_true, n_classes).to(torch.float32)
         y_pred = F.softmax(y_pred, dim=1)
 
         tp = (y_true * y_pred).sum(dim=0).to(torch.float32)
@@ -24,7 +24,7 @@ class F1LossPrecisRec(nn.Module):
 
         f1 = 2 * (precision * recall) / (precision + recall + self.epsilon)
         f1 = f1.clamp(min=self.epsilon, max=1 - self.epsilon)
-        return {"F1": 1 - f1.mean(), "precision": precision.mean(), "recall": recall.mean()}
+        return {"F1": f1.mean(), "precision": precision.mean(), "recall": recall.mean()}
 
 
 f1_precis_recall = F1LossPrecisRec().cuda()

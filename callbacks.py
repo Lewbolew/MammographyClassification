@@ -1,18 +1,22 @@
 import pytorch_lightning as pl
 from losses import f1_precis_recall
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 import numpy as np
 
-checkpoint_callback = ModelCheckpoint(
-    filepath='./checkpoints/Recall-{epoch}-{val_los:.2f}-{F1:.2f}-{recall:.2f}',
+
+early_stopping = EarlyStopping("val_loss")
+
+recall_checkpoint = ModelCheckpoint(
+    filepath='./checkpoints/Recall-checkpoint',
     save_top_k=2,
     verbose=True,
-    monitor='recall'
+    monitor='Recall/val'
 )
 
 f1_checkpoint = ModelCheckpoint(
-    filepath='./checkpoints/F1_Score-{epoch}-{val_los:.2f}-{F1:.2f}-{recall:.2f}',
+    filepath='./checkpoints/F1_Score-checkpoint.',
     save_top_k=2,
     verbose=True,
-    monitor='F1'
+    monitor='F1/val',
+    mode="max"
 )

@@ -1,9 +1,15 @@
 data:
-  data_dir: /datasets/mammography/INbreastWPNG # /Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy
+  data_dir: /datasets/mammography/ # /Users/yuriiyelisieiev/Desktop/Machine_Learning/Mammgraphy
   groups:
-    0: ['0', '1']
-    1: ['2', '3']
-    2: ['4a', '4b', '4c', '5', '6']
+    0: ""
+    1: ""
+    2: ""
+    3: ""
+    4: ""
+# For the Bi-Rads classifier
+#    0: ['0', '1']
+#    1: ['2', '3']
+#    2: ['4a', '4b', '4c', '5', '6']
   data_set: INBreastPatchesDataset
   val_coefficient: 0.2
 
